@@ -6,7 +6,7 @@ import { Patient } from '../types';
 // ==============================================================================
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'https://script.google.com/macros/s/AKfycbw9Y6FLP7juMZA3dj646K3VUNL0dqRnazXSytSj6vVj2sS99zXjnPcx-XZH6nYB2p3j/exec'; 
 
-const CACHE_KEY = 'osmak_ptb_registry_cache';
+const CACHE_KEY = 'osmak_tb_registry_cache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 interface CacheEnvelope {

@@ -219,7 +219,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
             </div>
             <div>
                 <h2 className="text-xl font-bold text-gray-800">{initialData ? 'Edit Patient Record' : 'New Patient Registration'}</h2>
-                <p className="text-sm text-gray-500">{initialData ? 'Update patient details' : 'Enter complete PTB case details'}</p>
+                <p className="text-sm text-gray-500">{initialData ? 'Update patient details' : 'Enter complete Tuberculosis case details'}</p>
             </div>
         </div>
         {onCancel && (

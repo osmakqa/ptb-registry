@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import PatientRegistration from './components/PatientRegistration';
-import { LayoutDashboard, UserPlus, FileSpreadsheet, Lock, LogOut } from 'lucide-react';
+import DataAnalysis from './components/DataAnalysis';
+import { LayoutDashboard, UserPlus, FileSpreadsheet, Lock, LogOut, PieChart } from 'lucide-react';
 import { getPatients } from './services/dataService';
 
-type View = 'landing' | 'login' | 'dashboard' | 'register';
+type View = 'landing' | 'login' | 'dashboard' | 'register' | 'analysis';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('landing');
@@ -39,7 +40,7 @@ const App: React.FC = () => {
   const LandingPage = () => (
     <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 animate-fadeIn">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome to OsMak PTB Registry</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome to OsMak Tuberculosis Registry</h1>
         <p className="text-gray-600">Please select an action to proceed</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
@@ -147,6 +148,18 @@ const App: React.FC = () => {
                 <LayoutDashboard size={20} />
                 Dashboard
               </button>
+
+              <button
+                onClick={() => setView('analysis')}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium transition-colors ${
+                  view === 'analysis' 
+                    ? 'bg-osmak-green/10 text-osmak-green' 
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <PieChart size={20} />
+                Data Analysis
+              </button>
               
               <button
                 onClick={() => setView('register')}
@@ -181,7 +194,7 @@ const App: React.FC = () => {
 
             <div className="absolute bottom-4 left-0 w-full px-4">
               <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-500 text-center">
-                  OsMak PTB Registry v1.0<br/>
+                  OsMak Tuberculosis Registry v1.0<br/>
                   For Authorized Use Only
               </div>
             </div>
@@ -205,6 +218,10 @@ const App: React.FC = () => {
                 </div>
                 <Dashboard />
             </div>
+          )}
+
+          {view === 'analysis' && isAuthenticated && (
+            <DataAnalysis />
           )}
           
           {view === 'register' && (
