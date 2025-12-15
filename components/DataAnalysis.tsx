@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { Patient, DiagnosticRecord } from '../types';
 import { getPatients } from '../services/dataService';
-import { BarChart3, TrendingUp, PieChart as PieIcon, Activity } from 'lucide-react';
+import { BarChart3, TrendingUp, PieChart as PieIcon, Activity, Clock, Timer, Hourglass } from 'lucide-react';
 
 // OsMak Brand & UI Colors
 const COLORS = {
@@ -87,18 +87,20 @@ const DataAnalysis: React.FC = () => {
       .map(key => ({ name: key, value: counts[key] }));
   }, [patients]);
 
-  // 3. Classification (Bacteriological vs Clinical)
+  // 3. Classification (Bacteriological vs Clinical vs Presumptive)
   const classificationData = useMemo(() => {
-    const counts = { 'Bacteriological': 0, 'Clinical': 0, 'Pending': 0 };
+    const counts = { 'Bacteriological': 0, 'Clinical': 0, 'Presumptive': 0, 'Pending': 0 };
     patients.forEach(p => {
         const status = p.bacteriologicalStatus;
         if (status === 'Bacteriological') counts['Bacteriological']++;
         else if (status === 'Clinical') counts['Clinical']++;
+        else if (status === 'Presumptive') counts['Presumptive']++;
         else counts['Pending']++;
     });
     return [
         { name: 'Bacteriological', value: counts['Bacteriological'] },
         { name: 'Clinical', value: counts['Clinical'] },
+        { name: 'Presumptive', value: counts['Presumptive'] },
         { name: 'Pending', value: counts['Pending'] },
     ].filter(d => d.value > 0);
   }, [patients]);
@@ -154,17 +156,100 @@ const DataAnalysis: React.FC = () => {
     const groups = { '0-18': 0, '19-39': 0, '40-59': 0, '60+': 0 };
     
     patients.forEach(p => {
-        if (!p.dob) return;
-        const birthDate = new Date(p.dob);
-        const age = new Date().getFullYear() - birthDate.getFullYear();
+        let age: number | null = null;
         
-        if (age < 19) groups['0-18']++;
-        else if (age < 40) groups['19-39']++;
-        else if (age < 60) groups['40-59']++;
-        else groups['60+']++;
+        if (p.age !== undefined && p.age !== null) {
+            age = p.age;
+        } else if (p.dob) {
+             const birthDate = new Date(p.dob);
+             age = new Date().getFullYear() - birthDate.getFullYear();
+        }
+
+        if (age !== null) {
+            if (age < 19) groups['0-18']++;
+            else if (age < 40) groups['19-39']++;
+            else if (age < 60) groups['40-59']++;
+            else groups['60+']++;
+        }
     });
 
     return Object.keys(groups).map(key => ({ name: key, value: (groups as any)[key] }));
+  }, [patients]);
+
+  // 7. Turnaround Time (Admission to Result)
+  const tatData = useMemo(() => {
+    const bins = { '0 days': {x:0, s:0}, '1 day': {x:0, s:0}, '2-3 days': {x:0, s:0}, '> 3 days': {x:0, s:0} };
+    
+    patients.forEach(p => {
+        if (!p.dateOfAdmission) return;
+        const admission = new Date(p.dateOfAdmission);
+
+        // Helper to calc lag
+        const calcLag = (history: DiagnosticRecord[]) => {
+            if (!history || history.length === 0) return null;
+            // Find earliest date that is valid
+            const validDates = history
+                .map(h => h.date ? new Date(h.date) : null)
+                .filter(d => d !== null && !isNaN(d.getTime())) as Date[];
+            
+            if (validDates.length === 0) return null;
+            // Sort asc to get earliest result
+            validDates.sort((a,b) => a.getTime() - b.getTime());
+            const firstDate = validDates[0];
+            
+            const diffTime = firstDate.getTime() - admission.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            // Clamp negative days to 0 (if lab done prior to admission)
+            return Math.max(0, diffDays);
+        };
+
+        const xLag = calcLag(p.xpertHistory);
+        const sLag = calcLag(p.smearHistory);
+
+        const assignBin = (days: number, type: 'x' | 's') => {
+            if (days === 0) bins['0 days'][type]++;
+            else if (days === 1) bins['1 day'][type]++;
+            else if (days <= 3) bins['2-3 days'][type]++;
+            else bins['> 3 days'][type]++;
+        };
+
+        if (xLag !== null) assignBin(xLag, 'x');
+        if (sLag !== null) assignBin(sLag, 's');
+    });
+
+    return Object.keys(bins).map(key => ({
+        name: key,
+        xpert: bins[key as keyof typeof bins].x,
+        smear: bins[key as keyof typeof bins].s
+    }));
+  }, [patients]);
+
+  // 8. ER Length of Stay
+  const erLosData = useMemo(() => {
+    const bins = { '0-2 days': 0, '3-5 days': 0, '6-10 days': 0, '> 10 days': 0 };
+    
+    patients.forEach(p => {
+        // Only consider those initially at ER-level
+        if (p.initialDisposition !== 'ER-level' || !p.dateOfAdmission) return;
+        
+        const start = new Date(p.dateOfAdmission);
+        let end = new Date(); // Default to now if active
+        
+        if (p.finalDispositionDate) {
+            end = new Date(p.finalDispositionDate);
+        }
+
+        const diffTime = end.getTime() - start.getTime();
+        const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const cleanDays = Math.max(0, days);
+
+        if (cleanDays <= 2) bins['0-2 days']++;
+        else if (cleanDays <= 5) bins['3-5 days']++;
+        else if (cleanDays <= 10) bins['6-10 days']++;
+        else bins['> 10 days']++;
+    });
+
+    return Object.keys(bins).map(key => ({ name: key, value: bins[key as keyof typeof bins] }));
   }, [patients]);
 
 
@@ -259,9 +344,13 @@ const DataAnalysis: React.FC = () => {
                             dataKey="value"
                             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         >
-                             <Cell fill={COLORS.primary} /> {/* Bacteriological */}
-                             <Cell fill={COLORS.info} />    {/* Clinical */}
-                             <Cell fill={COLORS.neutral} /> {/* Pending */}
+                            {classificationData.map((entry, index) => {
+                                let color = COLORS.neutral;
+                                if (entry.name === 'Bacteriological') color = COLORS.primary;
+                                else if (entry.name === 'Clinical') color = COLORS.info;
+                                else if (entry.name === 'Presumptive') color = COLORS.accent;
+                                return <Cell key={`cell-${index}`} fill={color} />;
+                            })}
                         </Pie>
                         <Legend verticalAlign="bottom" height={36}/>
                         <Tooltip />
@@ -319,6 +408,45 @@ const DataAnalysis: React.FC = () => {
                                 <Cell key={`cell-${index}`} fillOpacity={0.8} />
                             ))}
                         </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+
+        {/* Row 5A: ER Length of Stay */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <CardHeader title="ER Length of Stay (Admission Duration)" icon={Timer} />
+            <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={erLosData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip cursor={{fill: 'transparent'}} />
+                        <Bar dataKey="value" name="Patients" fill={COLORS.accent} radius={[4, 4, 0, 0]}>
+                            <Cell fill="#f59e0b" />
+                            <Cell fill="#d97706" />
+                            <Cell fill="#b45309" />
+                            <Cell fill="#78350f" />
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+
+        {/* Row 5B: Turnaround Time */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <CardHeader title="Diagnostic Turnaround Time (Days to Result)" icon={Hourglass} />
+            <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tatData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip cursor={{fill: 'transparent'}} />
+                        <Legend />
+                        <Bar dataKey="xpert" name="Xpert MTB/RIF" fill={COLORS.primary} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="smear" name="Smear Microscopy" fill={COLORS.info} radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

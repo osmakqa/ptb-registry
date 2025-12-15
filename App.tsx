@@ -3,7 +3,7 @@ import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import PatientRegistration from './components/PatientRegistration';
 import DataAnalysis from './components/DataAnalysis';
-import { LayoutDashboard, UserPlus, FileSpreadsheet, Lock, LogOut, PieChart } from 'lucide-react';
+import { LayoutDashboard, UserPlus, FileSpreadsheet, Lock, LogOut, BarChart3 } from 'lucide-react';
 import { getPatients } from './services/dataService';
 
 type View = 'landing' | 'login' | 'dashboard' | 'register' | 'analysis';
@@ -116,15 +116,26 @@ const App: React.FC = () => {
         // Only show hamburger menu if authenticated (sidebar is present)
         hideMenu={!isAuthenticated} 
         rightContent={
-          view === 'register' && !isAuthenticated ? (
+          isAuthenticated ? (
             <button 
-              onClick={() => setView('landing')}
-              className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-red-600 px-3 py-2 rounded-lg transition-colors text-xs md:text-sm font-medium border border-white/20 ml-2"
+              title="Logout"
             >
               <LogOut size={18} />
-              <span className="hidden sm:inline">Exit Registration</span>
+              <span className="hidden sm:inline">Exit</span>
             </button>
-          ) : null
+          ) : (
+            view === 'register' ? (
+              <button 
+                onClick={() => setView('landing')}
+                className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+              >
+                <LogOut size={18} />
+                <span className="hidden sm:inline">Exit Registration</span>
+              </button>
+            ) : null
+          )
         }
       />
 
@@ -133,69 +144,64 @@ const App: React.FC = () => {
         {/* Sidebar Navigation - Only shown when authenticated */}
         {isAuthenticated && (
           <aside className={`
-            fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-auto
+            fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-100 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-auto
             ${isSidebarOpen ? 'translate-x-0 pt-20 lg:pt-0' : '-translate-x-full'}
+            shadow-xl lg:shadow-none
           `}>
-            <div className="p-4 space-y-1">
+            <div className="p-6 space-y-3 mt-4">
               <button
                 onClick={() => setView('dashboard')}
-                className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium transition-colors ${
+                className={`flex items-center gap-4 w-full px-5 py-4 rounded-xl font-bold transition-all duration-200 ${
                   view === 'dashboard' 
-                    ? 'bg-osmak-green/10 text-osmak-green' 
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-osmak-green text-white shadow-md shadow-green-900/10' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <LayoutDashboard size={20} />
-                Dashboard
+                <LayoutDashboard size={24} className={view === 'dashboard' ? 'text-white' : 'text-osmak-green'} />
+                <span className="text-lg tracking-tight">Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => setView('register')}
+                className={`flex items-center gap-4 w-full px-5 py-4 rounded-xl font-bold transition-all duration-200 ${
+                  view === 'register' 
+                    ? 'bg-osmak-green text-white shadow-md shadow-green-900/10' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <UserPlus size={24} className={view === 'register' ? 'text-white' : 'text-osmak-green'} />
+                <span className="text-lg tracking-tight">Register Patient</span>
               </button>
 
               <button
                 onClick={() => setView('analysis')}
-                className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium transition-colors ${
+                className={`flex items-center gap-4 w-full px-5 py-4 rounded-xl font-bold transition-all duration-200 ${
                   view === 'analysis' 
-                    ? 'bg-osmak-green/10 text-osmak-green' 
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-osmak-green text-white shadow-md shadow-green-900/10' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <PieChart size={20} />
-                Data Analysis
-              </button>
-              
-              <button
-                onClick={() => setView('register')}
-                className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium transition-colors ${
-                  view === 'register' 
-                    ? 'bg-osmak-green/10 text-osmak-green' 
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <UserPlus size={20} />
-                Register Patient
+                <BarChart3 size={24} className={view === 'analysis' ? 'text-white' : 'text-osmak-green'} />
+                <span className="text-lg tracking-tight">Data Analysis</span>
               </button>
 
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                <LogOut size={20} className="text-red-500" />
-                <span className="text-red-500">Exit / Logout</span>
-              </button>
-
-              <a
-                href="https://docs.google.com/spreadsheets/d/1j2Rqc1BO_x6jbtv5Xfpx3Hsaq0cUpY62l-0vc2rWsHg/edit?gid=0#gid=0"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition-colors mt-8"
-              >
-                <FileSpreadsheet size={20} />
-                Database Sheet
-              </a>
+              <div className="pt-8 mt-6 border-t border-gray-100">
+                <a
+                  href="https://docs.google.com/spreadsheets/d/1j2Rqc1BO_x6jbtv5Xfpx3Hsaq0cUpY62l-0vc2rWsHg/edit?gid=0#gid=0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 w-full px-5 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-50 transition-colors group"
+                >
+                  <FileSpreadsheet size={24} className="text-osmak-green opacity-70 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-base">Database Sheet</span>
+                </a>
+              </div>
             </div>
 
-            <div className="absolute bottom-4 left-0 w-full px-4">
-              <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-500 text-center">
+            <div className="absolute bottom-8 left-0 w-full px-6">
+              <div className="bg-gray-50 p-4 rounded-xl text-xs text-gray-400 text-center leading-relaxed">
                   OsMak Tuberculosis Registry v1.0<br/>
-                  For Authorized Use Only
+                  <span className="font-semibold text-gray-500">Authorized Use Only</span>
               </div>
             </div>
           </aside>

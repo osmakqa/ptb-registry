@@ -10,9 +10,12 @@ interface DashboardProps {
     onEdit?: (id: string) => void;
 }
 
-const calculateAge = (dob: string) => {
-    if (!dob) return '';
-    const birthDate = new Date(dob);
+const getPatientAge = (p: Patient) => {
+    if (p.age !== undefined && p.age !== null) {
+        return p.age;
+    }
+    if (!p.dob) return '';
+    const birthDate = new Date(p.dob);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const m = today.getMonth() - birthDate.getMonth();
@@ -256,6 +259,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onEdit }) => {
                 <option value="All">All Classifications</option>
                 <option value="Bacteriological">Bacteriological Confirmed</option>
                 <option value="Clinical">Clinically Diagnosed</option>
+                <option value="Presumptive">Presumptive TB</option>
             </select>
 
             <button 
@@ -303,7 +307,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onEdit }) => {
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-gray-900">{patient.lastName}, {patient.firstName}</div>
                                         <div className="text-xs text-gray-500 flex flex-col">
-                                            <span>{patient.sex} • {calculateAge(patient.dob)}</span>
+                                            <span>{patient.sex} • {getPatientAge(patient)}</span>
                                             <span className="text-gray-400">Hosp#: {patient.hospitalNumber || 'N/A'}</span>
                                         </div>
                                     </td>
@@ -379,7 +383,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onEdit }) => {
                           <div>
                               <h2 className="text-xl font-bold text-gray-900">{detailPatient.lastName}, {detailPatient.firstName}</h2>
                               <p className="text-sm text-gray-500">
-                                  Hosp#: {detailPatient.hospitalNumber} • {detailPatient.sex} • {calculateAge(detailPatient.dob)} y/o
+                                  Hosp#: {detailPatient.hospitalNumber} • {detailPatient.sex} • {getPatientAge(detailPatient)} y/o
                               </p>
                           </div>
                           <div className="flex items-center gap-2">

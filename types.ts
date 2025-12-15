@@ -1,11 +1,12 @@
+
 export type LabResult = 'Positive' | 'Negative' | 'Pending' | 'Not Done' | 'Trace' | 'Indeterminate';
-export type BacteriologicalStatus = 'Bacteriological' | 'Clinical' | 'Pending';
+export type BacteriologicalStatus = 'Bacteriological' | 'Clinical' | 'Pending' | 'Presumptive';
 export type AnatomicalSite = 'Pulmonary' | 'Extra-pulmonary';
 export type DrugSusceptibility = 'Drug-susceptible' | 'Drug Resistant' | 'Unknown';
-export type TreatmentHistory = 'New' | 'Retreatment';
+export type TreatmentHistory = 'New' | 'Relapse';
 export type Outcome = 'ER-level' | 'Admitted' | 'Discharged' | 'Expired' | 'Transferred out' | 'Lost to follow-up' | '';
 export type InitialDisposition = 'ER-level' | 'Admitted' | 'Discharged' | 'Expired' | 'Transferred' | 'HAMA';
-export type CivilStatus = 'Single' | 'Married' | 'Widowed' | 'Separated';
+export type CivilStatus = 'Single' | 'Married' | 'Widowed' | 'Separated' | 'Unknown';
 
 export interface Comorbidities {
   diabetes: boolean;
@@ -28,6 +29,7 @@ export interface Patient {
   lastName: string;
   firstName: string;
   dob: string;
+  age?: number; // Optional, used if DOB is unknown
   sex: 'Male' | 'Female';
   civilStatus: CivilStatus;
   brgy: string;

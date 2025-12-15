@@ -49,6 +49,9 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
   const [formData, setFormData] = useState<Partial<Patient>>(initialPatientState);
   const [loading, setLoading] = useState(false);
   const [isOtherWard, setIsOtherWard] = useState(false);
+  
+  // Local state for age input to handle string/number conversion comfortably
+  const [ageInput, setAgeInput] = useState<string>('');
 
   // Load initial data if editing
   useEffect(() => {
@@ -60,11 +63,52 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
       if (data.areaWard && !WARDS.includes(data.areaWard)) {
           setIsOtherWard(true);
       }
+      // Set age input
+      if (data.age) {
+        setAgeInput(data.age.toString());
+      } else if (data.dob) {
+        // Calculate age from DOB for display
+        const birthDate = new Date(data.dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        setAgeInput(age.toString());
+      }
     }
   }, [initialData]);
 
   const handleChange = (field: keyof Patient, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDobChange = (val: string) => {
+    handleChange('dob', val);
+    if (val) {
+        const birthDate = new Date(val);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        setAgeInput(age >= 0 ? age.toString() : '');
+        handleChange('age', age >= 0 ? age : undefined);
+    }
+  };
+
+  const handleAgeChange = (val: string) => {
+    setAgeInput(val);
+    const ageNum = parseInt(val);
+    if (!isNaN(ageNum)) {
+        handleChange('age', ageNum);
+        // If user manually types age, we generally don't clear DOB, 
+        // but we prioritize Age if DOB is missing.
+    } else {
+        handleChange('age', undefined);
+    }
   };
 
   const handleBrgyChange = (brgy: string) => {
@@ -141,6 +185,13 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Custom Validation
+    if (!formData.dob && (formData.age === undefined || formData.age === null)) {
+        alert("Please enter either Date of Birth OR Age.");
+        setLoading(false);
+        return;
+    }
 
     if (['Discharged', 'Expired', 'Transferred'].includes(formData.initialDisposition || '')) {
         if (!formData.finalDispositionDate) {
@@ -239,7 +290,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
              <div className="space-y-1">
               <label className="text-xs font-semibold text-gray-600 uppercase">Hospital Number</label>
-              <input required type="text" className={inputClass} 
+              <input type="text" className={inputClass} 
                 value={formData.hospitalNumber || ''} onChange={e => handleChange('hospitalNumber', e.target.value)} />
             </div>
             <div className="space-y-1">
@@ -252,11 +303,36 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
               <input required type="text" className={inputClass}
                 value={formData.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-600 uppercase">DOB</label>
-              <input required type="date" className={inputClass}
-                value={formData.dob || ''} onChange={e => handleChange('dob', e.target.value)} />
+            
+            {/* Age and DOB Group */}
+            <div className="space-y-1 col-span-1 md:col-span-1">
+              <div className="flex gap-2">
+                 <div className="flex-1">
+                    <label className="text-xs font-semibold text-gray-600 uppercase">DOB</label>
+                    <input 
+                        type="date" 
+                        className={`${inputClass} ${ageInput && !formData.dob ? 'opacity-50' : ''}`}
+                        value={formData.dob || ''} 
+                        onChange={e => handleDobChange(e.target.value)} 
+                        required={!ageInput} // Required if age is empty
+                    />
+                 </div>
+                 <div className="w-20">
+                    <label className="text-xs font-semibold text-gray-600 uppercase">Age</label>
+                    <input 
+                        type="number" 
+                        min="0" 
+                        max="120"
+                        className={`${inputClass} text-center`}
+                        value={ageInput} 
+                        onChange={e => handleAgeChange(e.target.value)} 
+                        placeholder="Age"
+                        required={!formData.dob} // Required if DOB is empty
+                    />
+                 </div>
+              </div>
             </div>
+
             <div className="space-y-1">
               <label className="text-xs font-semibold text-gray-600 uppercase">Sex</label>
               <select className={inputClass}
@@ -273,6 +349,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
                 <option value="Married">Married</option>
                 <option value="Widowed">Widowed</option>
                 <option value="Separated">Separated</option>
+                <option value="Unknown">Unknown</option>
               </select>
             </div>
             <div className="space-y-1">
@@ -370,6 +447,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
                 value={formData.bacteriologicalStatus} onChange={e => handleChange('bacteriologicalStatus', e.target.value)}>
                 <option value="Bacteriological">Bacteriological Confirmed</option>
                 <option value="Clinical">Clinically Diagnosed</option>
+                <option value="Presumptive">Presumptive TB</option>
                 <option value="Pending">Pending</option>
               </select>
             </div>
@@ -402,7 +480,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onSuccess, in
               <select className={inputClass}
                 value={formData.treatmentHistory} onChange={e => handleChange('treatmentHistory', e.target.value)}>
                 <option value="New">New</option>
-                <option value="Retreatment">Retreatment</option>
+                <option value="Relapse">Relapse</option>
               </select>
             </div>
           </div>
